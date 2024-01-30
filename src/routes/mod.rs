@@ -5,7 +5,6 @@ mod path_variables;
 mod query_parameter;
 mod mirror_user_agent;
 mod middleware_message;
-use std::clone;
 
 use axum::{http::Method, routing::{get, post}, Router};
 use hello_world::hello_world;
