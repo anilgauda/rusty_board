@@ -7,6 +7,10 @@ mod mirror_user_agent;
 mod middleware_message;
 mod middleware_custom_header;
 mod always_errors;
+mod returns_201;
+mod get_json;
+mod custom_json_extractor;
+
 use axum::{http::Method, middleware, routing::{get, post}, Router};
 use hello_world::hello_world;
 use mirror_body::mirror_body_string;
@@ -18,6 +22,9 @@ use middleware_message::middleware_message;
 use tower_http::cors::{Any,CorsLayer};
 use middleware_custom_header::middleware_custom_header;
 use always_errors::always_errors;
+use returns_201::returns_201;
+use get_json::get_json;
+use custom_json_extractor::custom_json_extractor;
 
 #[derive(Clone)]
 pub struct SharedData{
@@ -39,6 +46,9 @@ pub fn get_routes() -> Router {
     .route("/query_parameter",get(query_params))
     .route("/mirror_user_agent", get(user_agent))
     .route("/middleware_message", get(middleware_message))
+    .route("/returns_201", post(returns_201))
+    .route("/get_json",get(get_json))
+    .route("/custom_json_extractor",post(custom_json_extractor))
     .with_state(shared_data)
     .layer(cors)
     .route_layer(middleware::from_fn(middleware_custom_header)) // Adding layer for token validation using middleware
