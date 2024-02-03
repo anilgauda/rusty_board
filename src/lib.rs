@@ -1,11 +1,6 @@
 pub mod routes;
 use routes::get_routes;
-use sea_orm::Database;
-
-pub async fn run(database_uri: &str) {
-    //Database connection
-    let database =  Database::connect(database_uri).await;
-
+pub async fn run() {
     // Turn on the server
     let app = get_routes();
 
