@@ -1,6 +1,7 @@
 pub mod routes;
 use routes::get_routes;
 pub async fn run() {
+
     // Turn on the server
     let app = get_routes();
 
