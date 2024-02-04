@@ -10,3 +10,6 @@ Setup
 2. Run server
     * Auto Deploy/ Listen mode: cargo watch -x run
     * Download docs and use them offline: cargo docs
+
+3. Database Notes
+    Generate entity: sea-orm-cli generate entity -u postgres://rustyboard:rustyboard@localhost/rustyboard -o src/entity

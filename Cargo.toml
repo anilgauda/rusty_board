@@ -1,4 +1,4 @@
-workspace = { members = [".","entity","migration"] }
+workspace = { members = [".","migration"] }
 [package]
 name = "rusty_board"
 version = "0.1.0"
@@ -17,7 +17,6 @@ features = [
 ]
 
 [dependencies]
-entity = {path = "entity"}
 migration = {path = "migration"}
 axum = "0.7.4"
 dotenvy = "0.15.7"
