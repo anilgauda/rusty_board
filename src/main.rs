@@ -4,7 +4,7 @@ use migration::MigratorTrait;
 use rusty_board::run;
 
 #[tokio::main]
-async fn main() {
+async fn main(){
     //Database setup
     dotenvy::dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
