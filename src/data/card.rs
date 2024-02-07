@@ -1,3 +1,5 @@
+use std::os::linux::raw::stat;
+
 use crate::{entity::card, routes::SharedData, utils::app_error::AppError};
 use axum::{
     extract::{path, Path, State},
@@ -6,7 +8,7 @@ use axum::{
     Json,
 };
 use chrono::NaiveDate;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -106,7 +108,28 @@ pub async fn get_all_cards(
             is_active: card.is_active,
             due_date: card.due_date,
             reminder_date: card.reminder_date,
-        }).collect();
+        })
+        .collect();
 
-        Ok(Json(cards))
+    Ok(Json(cards))
+}
+
+pub async fn put_card(
+    State(state): State<SharedData>,
+    Path(card_id): Path<i32>,
+    Json(card_request): Json<CardRequest>,
+) -> Result<(), StatusCode> {
+    let updated_card = card::ActiveModel {
+        id: Set(card_id),
+        list_id: Set(card_request.list_id),
+        title: Set(card_request.title),
+        description: Set(card_request.description),
+        created_date: Set(card_request.created_date),
+        is_active: Set(card_request.is_active),
+        due_date: Set(card_request.due_date),
+        reminder_date: Set(card_request.reminder_date),
+    };
+
+    card::Entity::update(updated_card).filter(card::Column::Id.eq(card_id)).exec(&state.database_connection).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
+    Ok(())
 }
