@@ -8,7 +8,7 @@ use axum::{
     Json,
 };
 use chrono::NaiveDate;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -33,6 +33,59 @@ pub struct CardResponse {
     due_date: Option<NaiveDate>,
     reminder_date: Option<NaiveDate>,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CardRequestPartialUpdate {
+    #[serde(
+        default,                                    // <- important for deserialization
+        skip_serializing_if = "Option::is_none",    // <- important for serialization
+        with = "::serde_with::rust::double_option",
+    )]
+    list_id: Option<Option<i32>>,
+
+    #[serde(
+        default,                                    // <- important for deserialization
+        skip_serializing_if = "Option::is_none",    // <- important for serialization
+        with = "::serde_with::rust::double_option",
+    )]
+    title: Option<Option<String>>,
+
+    #[serde(
+        default,                                    // <- important for deserialization
+        skip_serializing_if = "Option::is_none",    // <- important for serialization
+        with = "::serde_with::rust::double_option",
+    )]
+    description: Option<Option<String>>,
+
+    #[serde(
+        default,                                    // <- important for deserialization
+        skip_serializing_if = "Option::is_none",    // <- important for serialization
+        with = "::serde_with::rust::double_option",
+    )]
+    created_date: Option<Option<NaiveDate>>,
+
+    #[serde(
+        default,                                    // <- important for deserialization
+        skip_serializing_if = "Option::is_none",    // <- important for serialization
+        with = "::serde_with::rust::double_option",
+    )]
+    is_active: Option<Option<bool>>,
+
+    #[serde(
+        default,                                    // <- important for deserialization
+        skip_serializing_if = "Option::is_none",    // <- important for serialization
+        with = "::serde_with::rust::double_option",
+    )]
+    due_date: Option<Option<NaiveDate>>,
+
+    #[serde(
+        default,                                    // <- important for deserialization
+        skip_serializing_if = "Option::is_none",    // <- important for serialization
+        with = "::serde_with::rust::double_option",
+    )]
+    reminder_date: Option<Option<NaiveDate>>,
+}
+
 
 pub async fn create_card(
     State(state): State<SharedData>,
@@ -131,5 +184,46 @@ pub async fn put_card(
     };
 
     card::Entity::update(updated_card).filter(card::Column::Id.eq(card_id)).exec(&state.database_connection).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
+    Ok(())
+}
+
+pub async fn patch_card(State(state): State<SharedData>,Path(card_id): Path<i32>, Json(card_request): Json<CardRequestPartialUpdate>) -> Result<(),StatusCode> {
+    let db_connection = state.database_connection;
+
+    let mut card_by_id =  if let Some(card) = card::Entity::find_by_id(card_id).one(&db_connection).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?{
+        card.into_active_model()
+    }else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+
+    if let Some(list_id) = card_request.list_id {
+        card_by_id.list_id= Set(list_id)
+    }
+
+    if let Some(title) = card_request.title {
+        card_by_id.title= Set(title)
+    }
+
+    if let Some(description) = card_request.description {
+        card_by_id.description= Set(description)
+    }
+
+    if let Some(created_date) = card_request.created_date {
+        card_by_id.created_date= Set(created_date)
+    }
+
+    if let Some(is_active) = card_request.is_active {
+        card_by_id.is_active= Set(is_active)
+    }
+
+    if let Some(due_date) = card_request.due_date {
+        card_by_id.due_date= Set(due_date)
+    }
+
+    if let Some(reminder_date) = card_request.reminder_date {
+        card_by_id.reminder_date= Set(reminder_date)
+    }
+
+    card::Entity::update(card_by_id).filter(card::Column::Id.eq(card_id)).exec(&db_connection).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
     Ok(())
 }
