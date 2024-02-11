@@ -1,8 +1,14 @@
 pub mod routes;
-use routes::get_routes;
-pub async fn run() {
+pub mod entity;
+pub mod utils;
+pub mod data;
+use routes::create_routes;
+use sea_orm::DatabaseConnection;
+
+pub async fn run(database_connection: DatabaseConnection) {
+
     // Turn on the server
-    let app = get_routes();
+    let app = create_routes(database_connection);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
