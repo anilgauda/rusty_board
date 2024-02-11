@@ -1,4 +1,9 @@
-use crate::data::card::{create_card, delete_card, get_all_cards, patch_card, put_card, select_card_by_id};
+use crate::data::card::CreateCard::create_card;
+use crate::data::card::SelectCardById::select_card_by_id;
+use crate::data::card::GetAllCards::get_all_cards;
+use crate::data::card::PutCard::put_card;
+use crate::data::card::PatchCard::patch_card;
+use crate::data::card::DeleteCard::delete_card;
 
 use axum::{routing::{delete, get, patch, post, put}, Router};
 use sea_orm::DatabaseConnection;
