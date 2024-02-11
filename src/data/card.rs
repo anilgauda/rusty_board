@@ -1,11 +1,7 @@
-use std::os::linux::raw::stat;
 
 use crate::{entity::card, routes::SharedData, utils::app_error::AppError};
 use axum::{
-    extract::{path, Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
+    extract::{Path, State}, http::StatusCode, Json
 };
 use chrono::NaiveDate;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set};
@@ -102,12 +98,12 @@ pub async fn create_card(
     new_card
         .save(&state.database_connection)
         .await
-        .map_err(|err| {
+        .map_err(|_| {
             AppError::new(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Error Occured while Inserting",
             )
-        });
+        })?;
     Ok(())
 }
 
@@ -145,7 +141,7 @@ pub async fn get_all_cards(
     let cards = card::Entity::find()
         .all(&state.database_connection)
         .await
-        .map_err(|err| {
+        .map_err(|_| {
             AppError::new(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "No Element in Database".to_owned(),
@@ -171,7 +167,7 @@ pub async fn put_card(
     State(state): State<SharedData>,
     Path(card_id): Path<i32>,
     Json(card_request): Json<CardRequest>,
-) -> Result<(), StatusCode> {
+) -> Result<(), AppError> {
     let updated_card = card::ActiveModel {
         id: Set(card_id),
         list_id: Set(card_request.list_id),
@@ -183,17 +179,17 @@ pub async fn put_card(
         reminder_date: Set(card_request.reminder_date),
     };
 
-    card::Entity::update(updated_card).filter(card::Column::Id.eq(card_id)).exec(&state.database_connection).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
+    card::Entity::update(updated_card).filter(card::Column::Id.eq(card_id)).exec(&state.database_connection).await.map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Unable to update card".to_owned()))?;
     Ok(())
 }
 
-pub async fn patch_card(State(state): State<SharedData>,Path(card_id): Path<i32>, Json(card_request): Json<CardRequestPartialUpdate>) -> Result<(),StatusCode> {
+pub async fn patch_card(State(state): State<SharedData>,Path(card_id): Path<i32>, Json(card_request): Json<CardRequestPartialUpdate>) -> Result<(),AppError> {
     let db_connection = state.database_connection;
 
-    let mut card_by_id =  if let Some(card) = card::Entity::find_by_id(card_id).one(&db_connection).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?{
+    let mut card_by_id =  if let Some(card) = card::Entity::find_by_id(card_id).one(&db_connection).await.map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Error Occured while Updating card".to_owned()))?{
         card.into_active_model()
     }else {
-        return Err(StatusCode::NOT_FOUND);
+        return Err(AppError::new(StatusCode::NOT_FOUND,"Card with given Id not found".to_owned()));
     };
 
     if let Some(list_id) = card_request.list_id {
@@ -224,6 +220,12 @@ pub async fn patch_card(State(state): State<SharedData>,Path(card_id): Path<i32>
         card_by_id.reminder_date= Set(reminder_date)
     }
 
-    card::Entity::update(card_by_id).filter(card::Column::Id.eq(card_id)).exec(&db_connection).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
+    card::Entity::update(card_by_id).filter(card::Column::Id.eq(card_id)).exec(&db_connection).await.map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR,"Failed to update the card".to_owned()))?;
+    Ok(())
+}
+
+pub async fn delete_card(State(state): State<SharedData>,Path(card_id): Path<i32>) -> Result<(),AppError> {
+    // card::Entity::delete_many().filter(card::Column::Id.eq(card_id)).exec(&state.database_connection).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    card::Entity::delete_by_id(card_id).exec(&state.database_connection).await.map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR,"Unable to Delete the card".to_owned()))?;
     Ok(())
 }
